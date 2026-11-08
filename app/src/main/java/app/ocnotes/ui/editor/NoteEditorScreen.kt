@@ -23,7 +23,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -95,10 +97,21 @@ fun NoteEditorScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(12.dp))
+            val codeBackground = MaterialTheme.colorScheme.surfaceVariant
+            val codeColor = MaterialTheme.colorScheme.onSurfaceVariant
+            val linkColor = MaterialTheme.colorScheme.primary
+            val baseSize = MaterialTheme.typography.bodyLarge.fontSize
+            val markdownTransform = remember(linkColor, codeBackground, codeColor, baseSize) {
+                MarkdownVisualTransformation(linkColor, codeBackground, codeColor, baseSize)
+            }
             OutlinedTextField(
                 value = content,
                 onValueChange = viewModel::onContentChange,
                 label = { Text("Markdown") },
+                // Unspecified line height lets a larger heading span grow its line
+                // instead of being clipped by the body line height.
+                textStyle = MaterialTheme.typography.bodyLarge.copy(lineHeight = TextUnit.Unspecified),
+                visualTransformation = markdownTransform,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
