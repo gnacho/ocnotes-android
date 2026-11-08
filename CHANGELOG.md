@@ -4,6 +4,23 @@ All notable changes to ocnotes-android are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.12] - 2026-11-08
+
+### Added
+
+- Grid view (2 columns) toggle for the notes list.
+- Swipe actions: swipe a card right to favorite and left to delete.
+
+### Changed
+
+- The "note opening mode" setting (plain text vs styled editor) is now wired to
+  the editor rendering.
+
+### Fixed
+
+- The system Back button closed the app from Settings or the editor; it now
+  returns to the list.
+
 ## [0.1.10] - 2026-11-08
 
 ### Added
