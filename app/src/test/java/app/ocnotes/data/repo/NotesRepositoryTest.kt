@@ -80,7 +80,7 @@ class NotesRepositoryTest {
         val api = FakeNotesApi()
         val repo = repo(sessionStore, dao, api)
 
-        repo.createNote("hello\nworld", "cat")
+        repo.createNote("hello", "hello\nworld", "cat")
 
         assertEquals("hello", api.createCalls.first().title)
         assertEquals(1, dao.notes.size)
@@ -93,7 +93,7 @@ class NotesRepositoryTest {
         val dao = FakeNoteDao().apply { notes.add(note(1, content = "old")) }
         val repo = repo(sessionStore, dao)
 
-        repo.updateNote(1, "new body", "cat")
+        repo.updateNote(1, "hello", "new body", "cat")
 
         val stored = dao.notes.first { it.id == 1L }
         assertEquals("new body", stored.content)

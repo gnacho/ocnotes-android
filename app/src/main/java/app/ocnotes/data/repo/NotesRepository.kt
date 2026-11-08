@@ -85,20 +85,21 @@ class NotesRepository(
 
     suspend fun getNote(id: Long): NoteEntity? = noteDao.getByIdOnce(id)
 
-    suspend fun createNote(content: String, category: String): NoteEntity {
+    suspend fun createNote(title: String, content: String, category: String): NoteEntity {
         val api = currentApi()
             ?: throw IllegalStateException("Not logged in")
-        val created = api.createNote(CreateNoteRequest(deriveTitle(content), content, category))
+        val finalTitle = title.ifBlank { deriveTitle(content) }
+        val created = api.createNote(CreateNoteRequest(finalTitle, content, category))
         val entity = created.toEntity()
         noteDao.upsert(entity)
         return entity
     }
 
-    suspend fun updateNote(id: Long, content: String, category: String) {
+    suspend fun updateNote(id: Long, title: String, content: String, category: String) {
         val current = noteDao.getByIdOnce(id) ?: return
         noteDao.upsert(
             current.copy(
-                title = deriveTitle(content),
+                title = title.ifBlank { deriveTitle(content) },
                 content = content,
                 category = category,
                 dirty = true,

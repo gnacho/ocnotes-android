@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -19,6 +18,26 @@ import kotlinx.coroutines.launch
 sealed interface NotesScope {
     data object All : NotesScope
     data object Favorites : NotesScope
+    data object Uncategorized : NotesScope
+    data class Category(val name: String) : NotesScope
+}
+
+data class CategoryCount(val name: String, val count: Int)
+
+data class NotesCounts(val total: Int = 0, val favorites: Int = 0, val uncategorized: Int = 0)
+
+fun filterByScope(notes: List<NoteEntity>, scope: NotesScope): List<NoteEntity> = when (scope) {
+    NotesScope.All -> notes
+    NotesScope.Favorites -> notes.filter { it.favorite }
+    NotesScope.Uncategorized -> notes.filter { it.category.isBlank() }
+    is NotesScope.Category -> notes.filter { it.category == scope.name }
+}
+
+private fun matches(note: NoteEntity, query: String): Boolean {
+    val needle = query.trim()
+    return note.title.contains(needle, ignoreCase = true) ||
+        note.content.contains(needle, ignoreCase = true) ||
+        note.category.contains(needle, ignoreCase = true)
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -29,7 +48,6 @@ class NotesViewModel(private val repository: NotesRepository) : ViewModel() {
     private val _syncError = MutableStateFlow<String?>(null)
 
     init {
-        // Sync on open: initial when empty, incremental otherwise.
         sync()
     }
 
@@ -38,15 +56,28 @@ class NotesViewModel(private val repository: NotesRepository) : ViewModel() {
     val syncing: StateFlow<Boolean> = _syncing
     val syncError: StateFlow<String?> = _syncError
 
-    val notes: StateFlow<List<NoteEntity>> = combine(scope, _query) { s, q -> s to q }
-        .flatMapLatest { (s, q) ->
-            val source = when (s) {
-                NotesScope.All -> repository.observeNotes()
-                NotesScope.Favorites -> repository.observeFavorites()
-            }
-            source.map { list -> if (q.isBlank()) list else list.filter { matches(it, q) } }
-        }
+    private val allNotes: StateFlow<List<NoteEntity>> = repository.observeNotes()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    val notes: StateFlow<List<NoteEntity>> = combine(allNotes, scope, _query) { list, s, q ->
+        val scoped = filterByScope(list, s)
+        if (q.isBlank()) scoped else scoped.filter { matches(it, q) }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    val categories: StateFlow<List<CategoryCount>> = allNotes.map { list ->
+        list.filter { it.category.isNotBlank() }
+            .groupBy { it.category }
+            .map { (name, notes) -> CategoryCount(name, notes.size) }
+            .sortedBy { it.name.lowercase() }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    val counts: StateFlow<NotesCounts> = allNotes.map { list ->
+        NotesCounts(
+            total = list.size,
+            favorites = list.count { it.favorite },
+            uncategorized = list.count { it.category.isBlank() },
+        )
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, NotesCounts())
 
     fun selectScope(s: NotesScope) {
         scope.value = s
@@ -54,13 +85,6 @@ class NotesViewModel(private val repository: NotesRepository) : ViewModel() {
 
     fun setQuery(value: String) {
         _query.value = value
-    }
-
-    private fun matches(note: NoteEntity, query: String): Boolean {
-        val needle = query.trim()
-        return note.title.contains(needle, ignoreCase = true) ||
-            note.content.contains(needle, ignoreCase = true) ||
-            note.category.contains(needle, ignoreCase = true)
     }
 
     fun toggleFavorite(note: NoteEntity) {
@@ -76,8 +100,6 @@ class NotesViewModel(private val repository: NotesRepository) : ViewModel() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // A failed sync (offline, 4xx/5xx) must never crash the app and
-                // must keep the local cache: surface it and retry on next sync.
                 _syncError.value = e.message ?: "Sync failed"
             } finally {
                 _syncing.value = false

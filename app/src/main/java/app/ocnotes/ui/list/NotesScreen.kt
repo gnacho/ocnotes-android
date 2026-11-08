@@ -3,6 +3,8 @@ package app.ocnotes.ui.list
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +27,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Card
@@ -46,12 +51,16 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -64,6 +73,8 @@ import kotlinx.coroutines.launch
 fun NotesScreen(
     notes: List<NoteEntity>,
     scope: NotesScope,
+    counts: NotesCounts,
+    categories: List<CategoryCount>,
     syncing: Boolean,
     syncError: String? = null,
     userInitial: String = "?",
@@ -84,36 +95,52 @@ fun NotesScreen(
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            Column(Modifier.fillMaxSize().padding(16.dp)) {
-                Text("ocnotes", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(16.dp))
-                NavigationDrawerItem(
-                    label = { Text("Todas las notas") },
-                    selected = scope == NotesScope.All,
-                    onClick = {
-                        onSelectScope(NotesScope.All)
-                        coroutineScope.launch { drawerState.close() }
-                    },
+            androidx.compose.material3.ModalDrawerSheet {
+                var showAbout by remember { mutableStateOf(false) }
+            fun pick(s: NotesScope) {
+                onSelectScope(s)
+                coroutineScope.launch { drawerState.close() }
+            }
+            Column(Modifier.fillMaxSize().padding(vertical = 16.dp)) {
+                Text(
+                    "ocnotes",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 16.dp),
                 )
-                NavigationDrawerItem(
-                    label = { Text("Favoritas") },
-                    selected = scope == NotesScope.Favorites,
-                    onClick = {
-                        onSelectScope(NotesScope.Favorites)
-                        coroutineScope.launch { drawerState.close() }
-                    },
-                )
-                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.height(8.dp))
+                DrawerItem("Todas las notas", Icons.Outlined.Schedule, counts.total, scope == NotesScope.All) { pick(NotesScope.All) }
+                DrawerItem("Favoritos", Icons.Outlined.StarBorder, counts.favorites, scope == NotesScope.Favorites) { pick(NotesScope.Favorites) }
+                DrawerItem("Sin categoría", Icons.Outlined.Folder, counts.uncategorized, scope == NotesScope.Uncategorized) { pick(NotesScope.Uncategorized) }
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                NavigationDrawerItem(
-                    label = { Text("Ajustes") },
-                    selected = false,
-                    onClick = {
-                        coroutineScope.launch { drawerState.close() }
-                        onOpenSettings()
-                    },
+                Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                    categories.forEach { c ->
+                        DrawerItem(
+                            c.name,
+                            Icons.Outlined.Folder,
+                            c.count,
+                            scope == NotesScope.Category(c.name),
+                        ) { pick(NotesScope.Category(c.name)) }
+                    }
+                }
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                DrawerItem("Ajustes", Icons.Filled.Settings, null, false) {
+                    coroutineScope.launch { drawerState.close() }
+                    onOpenSettings()
+                }
+                DrawerItem("Acerca de", Icons.Outlined.Info, null, false) { showAbout = true }
+                TextButton(onClick = onLogout, modifier = Modifier.padding(horizontal = 8.dp)) {
+                    Text("Cerrar sesión")
+                }
+            }
+            if (showAbout) {
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = { showAbout = false },
+                    title = { Text("ocnotes") },
+                    text = { Text("Cliente de notas para OpenCloud / Nextcloud.\nVersión ${app.ocnotes.BuildConfig.VERSION_NAME}") },
+                    confirmButton = { TextButton(onClick = { showAbout = false }) { Text("Cerrar") } },
                 )
-                TextButton(onClick = onLogout) { Text("Cerrar sesión") }
+            }
             }
         },
     ) {
@@ -187,6 +214,34 @@ fun NotesScreen(
 private fun keyOf(entry: NoteListEntry): Any = when (entry) {
     is NoteListEntry.Header -> "h:${entry.label}"
     is NoteListEntry.Card -> "n:${entry.note.id}"
+}
+
+@Composable
+private fun DrawerItem(
+    label: String,
+    icon: ImageVector,
+    count: Int?,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    NavigationDrawerItem(
+        icon = { Icon(icon, contentDescription = null) },
+        label = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                if (count != null) {
+                    Text(
+                        text = count.toString(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+            }
+        },
+        selected = selected,
+        onClick = onClick,
+        modifier = Modifier.padding(horizontal = 12.dp),
+    )
 }
 
 @Composable
