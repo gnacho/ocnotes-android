@@ -4,6 +4,20 @@ All notable changes to ocnotes-android are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.10] - 2026-11-08
+
+### Added
+
+- Note interior: in-note search with highlighting, a view/edit toggle, favorite,
+  rename and an overflow menu (rename, category, share, move, cancel, delete,
+  pin to home). Markdown rendered with an editable styled field.
+- Side drawer with all notes / favorites / uncategorized / every category and
+  their counts, plus settings and about.
+- Settings screen: Wi-Fi-only and background sync, theme, direct editing,
+  monospace, font size, keep screen on and prevent screenshots, wired to
+  WorkManager constraints, the editor and FLAG_SECURE.
+- Pin-to-home shortcut for a note.
+
 ## [0.1.8] - 2026-11-08
 
 ### Changed
