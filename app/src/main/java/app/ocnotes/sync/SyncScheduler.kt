@@ -12,16 +12,16 @@ object SyncScheduler {
     private const val UNIQUE_NAME = "ocnotes_sync"
     private const val MIN_INTERVAL_MINUTES = 15L // WorkManager minimum periodic interval
 
-    // minutes <= 0 = never (cancels any scheduled work).
-    fun schedule(context: Context, minutes: Long) {
+    // minutes <= 0 or enabled=false = never (cancels any scheduled work).
+    fun schedule(context: Context, minutes: Long, enabled: Boolean = true, wifiOnly: Boolean = false) {
         val workManager = WorkManager.getInstance(context)
-        if (minutes <= 0) {
+        if (!enabled || minutes <= 0) {
             workManager.cancelUniqueWork(UNIQUE_NAME)
             return
         }
         val interval = maxOf(minutes, MIN_INTERVAL_MINUTES)
         val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .setRequiredNetworkType(if (wifiOnly) NetworkType.UNMETERED else NetworkType.CONNECTED)
             .build()
         val request = PeriodicWorkRequestBuilder<SyncWorker>(interval, TimeUnit.MINUTES)
             .setConstraints(constraints)

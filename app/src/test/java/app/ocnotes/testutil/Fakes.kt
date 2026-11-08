@@ -10,6 +10,8 @@ import app.ocnotes.data.remote.dto.UpdateNoteRequest
 import app.ocnotes.data.session.Session
 import app.ocnotes.data.session.SessionStore
 import app.ocnotes.data.settings.AppSettings
+import app.ocnotes.data.settings.FontSizeOption
+import app.ocnotes.data.settings.NoteOpenMode
 import app.ocnotes.data.settings.SettingsStore
 import app.ocnotes.data.settings.ThemeMode
 import kotlinx.coroutines.flow.Flow
@@ -57,6 +59,14 @@ class FakeSettingsStore : SettingsStore {
     override suspend fun setSyncInterval(minutes: Int) {
         state.value = state.value.copy(syncIntervalMinutes = minutes)
     }
+    override suspend fun setBackgroundSync(enabled: Boolean) { state.value = state.value.copy(backgroundSync = enabled) }
+    override suspend fun setWifiOnly(enabled: Boolean) { state.value = state.value.copy(wifiOnly = enabled) }
+    override suspend fun setNoteOpenMode(mode: NoteOpenMode) { state.value = state.value.copy(noteOpenMode = mode) }
+    override suspend fun setDirectEditing(enabled: Boolean) { state.value = state.value.copy(directEditing = enabled) }
+    override suspend fun setMonospace(enabled: Boolean) { state.value = state.value.copy(monospace = enabled) }
+    override suspend fun setFontSize(size: FontSizeOption) { state.value = state.value.copy(fontSize = size) }
+    override suspend fun setKeepScreenOn(enabled: Boolean) { state.value = state.value.copy(keepScreenOn = enabled) }
+    override suspend fun setPreventScreenshots(enabled: Boolean) { state.value = state.value.copy(preventScreenshots = enabled) }
 }
 
 class FakeNoteDao : NoteDao {
