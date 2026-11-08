@@ -4,6 +4,16 @@ All notable changes to ocnotes-android are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.6] - 2026-11-08
+
+### Added
+
+- Live markdown styling in the note editor: headings `#`..`######` at increasing
+  sizes and bold, `**bold**`/`*italic*`/`***both***`, `~~strike~~`, inline code
+  (monospace + background) and links (accent + underline) are rendered in place
+  while writing. Implemented with a pure parser and a VisualTransformation
+  (identity offset mapping), no new dependency. Lists and images stay as text.
+
 ## [0.1.4] - 2026-11-08
 
 ### Fixed
