@@ -5,9 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
+import app.ocnotes.ui.theme.NotesTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,7 +53,7 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.LIGHT -> false
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
             }
-            MaterialTheme(colorScheme = if (darkTheme) darkColorScheme() else lightColorScheme()) {
+            NotesTheme(darkTheme = darkTheme) {
                 val session by repository.session.collectAsStateWithLifecycle(initialValue = null)
 
                 if (session == null) {
@@ -103,11 +101,17 @@ class MainActivity : ComponentActivity() {
                 val scope by notesViewModel.scopeState.collectAsStateWithLifecycle()
                 val syncing by notesViewModel.syncing.collectAsStateWithLifecycle()
                 val syncError by notesViewModel.syncError.collectAsStateWithLifecycle()
+                val query by notesViewModel.query.collectAsStateWithLifecycle()
+                val session by repository.session.collectAsStateWithLifecycle(initialValue = null)
+                val userInitial = session?.username?.trim()?.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
                 NotesScreen(
                     notes = notes,
                     scope = scope,
                     syncing = syncing,
                     syncError = syncError,
+                    userInitial = userInitial,
+                    query = query,
+                    onQueryChange = notesViewModel::setQuery,
                     onSelectScope = notesViewModel::selectScope,
                     onToggleFavorite = notesViewModel::toggleFavorite,
                     onNoteClick = {

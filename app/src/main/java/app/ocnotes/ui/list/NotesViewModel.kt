@@ -10,7 +10,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -22,6 +24,7 @@ sealed interface NotesScope {
 @OptIn(ExperimentalCoroutinesApi::class)
 class NotesViewModel(private val repository: NotesRepository) : ViewModel() {
     private val scope = MutableStateFlow<NotesScope>(NotesScope.All)
+    private val _query = MutableStateFlow("")
     private val _syncing = MutableStateFlow(false)
     private val _syncError = MutableStateFlow<String?>(null)
 
@@ -31,20 +34,33 @@ class NotesViewModel(private val repository: NotesRepository) : ViewModel() {
     }
 
     val scopeState: StateFlow<NotesScope> = scope
+    val query: StateFlow<String> = _query
     val syncing: StateFlow<Boolean> = _syncing
     val syncError: StateFlow<String?> = _syncError
 
-    val notes: StateFlow<List<NoteEntity>> = scope
-        .flatMapLatest { s ->
-            when (s) {
+    val notes: StateFlow<List<NoteEntity>> = combine(scope, _query) { s, q -> s to q }
+        .flatMapLatest { (s, q) ->
+            val source = when (s) {
                 NotesScope.All -> repository.observeNotes()
                 NotesScope.Favorites -> repository.observeFavorites()
             }
+            source.map { list -> if (q.isBlank()) list else list.filter { matches(it, q) } }
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     fun selectScope(s: NotesScope) {
         scope.value = s
+    }
+
+    fun setQuery(value: String) {
+        _query.value = value
+    }
+
+    private fun matches(note: NoteEntity, query: String): Boolean {
+        val needle = query.trim()
+        return note.title.contains(needle, ignoreCase = true) ||
+            note.content.contains(needle, ignoreCase = true) ||
+            note.category.contains(needle, ignoreCase = true)
     }
 
     fun toggleFavorite(note: NoteEntity) {
