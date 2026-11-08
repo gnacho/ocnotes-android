@@ -83,6 +83,7 @@ fun NoteEditorScreen(
     categories: List<String>,
     monospace: Boolean,
     fontSizeSp: Float,
+    styled: Boolean,
     keepScreenOn: Boolean,
     onClose: () -> Unit,
 ) {
@@ -118,8 +119,8 @@ fun NoteEditorScreen(
         baseFontSize = fontSizeSp.sp,
         highlightColor = scheme.primary.copy(alpha = 0.30f),
     )
-    val transformation: VisualTransformation = remember(style, searchQuery) {
-        MarkdownVisualTransformation(style, searchQuery)
+    val transformation: VisualTransformation = remember(style, searchQuery, styled) {
+        if (styled) MarkdownVisualTransformation(style, searchQuery) else VisualTransformation.None
     }
     val textStyle = TextStyle(
         fontSize = fontSizeSp.sp,
@@ -169,7 +170,7 @@ fun NoteEditorScreen(
                 if (mode == EditorMode.VIEW) {
                     SelectionContainer {
                         Text(
-                            text = markdownAnnotatedString(content, style, searchQuery),
+                            text = if (styled) markdownAnnotatedString(content, style, searchQuery) else androidx.compose.ui.text.AnnotatedString(content),
                             style = textStyle,
                             modifier = Modifier
                                 .fillMaxSize()

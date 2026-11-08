@@ -27,6 +27,8 @@ class SettingsViewModel(private val store: SettingsStore) : ViewModel() {
     fun setFontSize(size: FontSizeOption) = viewModelScope.launch { store.setFontSize(size) }
     fun setKeepScreenOn(enabled: Boolean) = viewModelScope.launch { store.setKeepScreenOn(enabled) }
     fun setPreventScreenshots(enabled: Boolean) = viewModelScope.launch { store.setPreventScreenshots(enabled) }
+    fun setGridView(enabled: Boolean) = viewModelScope.launch { store.setGridView(enabled) }
+    fun setSwipeActions(enabled: Boolean) = viewModelScope.launch { store.setSwipeActions(enabled) }
 
     companion object {
         fun factory(store: SettingsStore): ViewModelProvider.Factory =
