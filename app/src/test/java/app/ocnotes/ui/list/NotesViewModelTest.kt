@@ -1,6 +1,7 @@
 package app.ocnotes.ui.list
 
 import app.ocnotes.data.repo.NotesRepository
+import app.ocnotes.data.session.Session
 import app.ocnotes.testutil.FakeNoteDao
 import app.ocnotes.testutil.FakeNotesApi
 import app.ocnotes.testutil.FakeSessionStore
@@ -14,6 +15,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -73,6 +75,27 @@ class NotesViewModelTest {
             advanceUntilIdle()
 
             assertFalse(dao.notes.isNotEmpty())
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `sync failure sets an error instead of crashing`() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val repo = NotesRepository(
+                sessionStore = FakeSessionStore(Session("https://example.com", "alice", "token")),
+                noteDao = FakeNoteDao(),
+                apiFactory = { FakeNotesApi(notesErrorCode = 500) },
+            )
+            // init { sync() } runs against a throwing API: must not throw.
+            val vm = NotesViewModel(repo)
+            advanceUntilIdle()
+
+            assertNotNull(vm.syncError.value)
+            assertFalse(vm.syncing.value)
         } finally {
             Dispatchers.resetMain()
         }

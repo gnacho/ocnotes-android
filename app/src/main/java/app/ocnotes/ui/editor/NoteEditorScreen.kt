@@ -45,10 +45,6 @@ fun NoteEditorScreen(
         if (closed) onClose()
     }
 
-    LaunchedEffect(Unit) {
-        if (!viewModel.isNew) viewModel.reload()
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(

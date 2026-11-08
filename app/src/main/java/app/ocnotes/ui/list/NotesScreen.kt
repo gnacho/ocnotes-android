@@ -47,6 +47,7 @@ fun NotesScreen(
     notes: List<NoteEntity>,
     scope: NotesScope,
     syncing: Boolean,
+    syncError: String? = null,
     onSelectScope: (NotesScope) -> Unit,
     onToggleFavorite: (NoteEntity) -> Unit,
     onNoteClick: (NoteEntity) -> Unit,
@@ -118,19 +119,29 @@ fun NotesScreen(
                 )
             },
         ) { padding ->
-            if (notes.isEmpty()) {
-                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    Text("No notes", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(Modifier.fillMaxSize().padding(padding)) {
+                if (syncError != null) {
+                    Text(
+                        text = "Sync failed: $syncError",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                    )
                 }
-            } else {
-                LazyColumn(Modifier.fillMaxSize().padding(padding)) {
-                    items(notes, key = { it.id }) { note ->
-                        NoteRow(
-                            note = note,
-                            onToggleFavorite = { onToggleFavorite(note) },
-                            onClick = { onNoteClick(note) },
-                        )
-                        HorizontalDivider()
+                if (notes.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No notes", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else {
+                    LazyColumn(Modifier.fillMaxSize()) {
+                        items(notes, key = { it.id }) { note ->
+                            NoteRow(
+                                note = note,
+                                onToggleFavorite = { onToggleFavorite(note) },
+                                onClick = { onNoteClick(note) },
+                            )
+                            HorizontalDivider()
+                        }
                     }
                 }
             }

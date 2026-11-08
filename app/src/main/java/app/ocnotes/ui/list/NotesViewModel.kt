@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import app.ocnotes.data.local.NoteEntity
 import app.ocnotes.data.repo.NotesRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,6 +23,7 @@ sealed interface NotesScope {
 class NotesViewModel(private val repository: NotesRepository) : ViewModel() {
     private val scope = MutableStateFlow<NotesScope>(NotesScope.All)
     private val _syncing = MutableStateFlow(false)
+    private val _syncError = MutableStateFlow<String?>(null)
 
     init {
         // Sync on open: initial when empty, incremental otherwise.
@@ -30,6 +32,7 @@ class NotesViewModel(private val repository: NotesRepository) : ViewModel() {
 
     val scopeState: StateFlow<NotesScope> = scope
     val syncing: StateFlow<Boolean> = _syncing
+    val syncError: StateFlow<String?> = _syncError
 
     val notes: StateFlow<List<NoteEntity>> = scope
         .flatMapLatest { s ->
@@ -53,6 +56,13 @@ class NotesViewModel(private val repository: NotesRepository) : ViewModel() {
             _syncing.value = true
             try {
                 repository.sync()
+                _syncError.value = null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // A failed sync (offline, 4xx/5xx) must never crash the app and
+                // must keep the local cache: surface it and retry on next sync.
+                _syncError.value = e.message ?: "Sync failed"
             } finally {
                 _syncing.value = false
             }

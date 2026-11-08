@@ -109,6 +109,7 @@ class FakeNotesApi(
         favorite = false,
     ),
     var settingsErrorCode: Int? = null,
+    var notesErrorCode: Int? = null,
     var deleteErrorCode: Int? = null,
 ) : NotesApi {
     val notesCalls = mutableListOf<Long?>()
@@ -129,6 +130,11 @@ class FakeNotesApi(
 
     override suspend fun notes(pruneBefore: Long?): List<NoteDto> {
         notesCalls.add(pruneBefore)
+        notesErrorCode?.let { code ->
+            throw HttpException(
+                Response.error<List<NoteDto>>(code, "".toResponseBody("application/json".toMediaType()))
+            )
+        }
         return if (pruneBefore == null) notesResponse else pruneResponse
     }
 

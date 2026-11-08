@@ -78,6 +78,10 @@ class MainActivity : ComponentActivity() {
     private fun AppContent() {
         val settings by settingsViewModel.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
         var screen by rememberSaveable { mutableStateOf(SCREEN_LIST) }
+        // Bumped on every editor open so each session gets a fresh ViewModel.
+        // Without it, a keyed ViewModel is reused and keeps `closed=true` (and the
+        // previous content for "new note"), closing the editor immediately.
+        var editorKey by rememberSaveable { mutableStateOf(0L) }
         var showSettings by rememberSaveable { mutableStateOf(false) }
 
         LaunchedEffect(settings.syncIntervalMinutes) {
@@ -87,25 +91,33 @@ class MainActivity : ComponentActivity() {
         when {
             showSettings -> SettingsScreen(viewModel = settingsViewModel, onBack = { showSettings = false })
             screen == SCREEN_NEW -> NoteEditorScreen(
-                viewModel = viewModel(key = "editor-new") { NoteEditorViewModel(repository, null) },
+                viewModel = viewModel(key = "editor-$editorKey") { NoteEditorViewModel(repository, null) },
                 onClose = { screen = SCREEN_LIST },
             )
             screen > 0L -> NoteEditorScreen(
-                viewModel = viewModel(key = "editor-$screen") { NoteEditorViewModel(repository, screen) },
+                viewModel = viewModel(key = "editor-$editorKey") { NoteEditorViewModel(repository, screen) },
                 onClose = { screen = SCREEN_LIST },
             )
             else -> {
                 val notes by notesViewModel.notes.collectAsStateWithLifecycle()
                 val scope by notesViewModel.scopeState.collectAsStateWithLifecycle()
                 val syncing by notesViewModel.syncing.collectAsStateWithLifecycle()
+                val syncError by notesViewModel.syncError.collectAsStateWithLifecycle()
                 NotesScreen(
                     notes = notes,
                     scope = scope,
                     syncing = syncing,
+                    syncError = syncError,
                     onSelectScope = notesViewModel::selectScope,
                     onToggleFavorite = notesViewModel::toggleFavorite,
-                    onNoteClick = { screen = it.id },
-                    onNewNote = { screen = SCREEN_NEW },
+                    onNoteClick = {
+                        editorKey++
+                        screen = it.id
+                    },
+                    onNewNote = {
+                        editorKey++
+                        screen = SCREEN_NEW
+                    },
                     onSync = notesViewModel::sync,
                     onLogout = notesViewModel::logout,
                     onOpenSettings = { showSettings = true },
