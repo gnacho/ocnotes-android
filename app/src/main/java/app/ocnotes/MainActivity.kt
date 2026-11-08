@@ -3,6 +3,7 @@ package app.ocnotes
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -99,6 +100,14 @@ class MainActivity : ComponentActivity() {
         var editorKey by rememberSaveable { mutableStateOf(0L) }
         var showSettings by rememberSaveable { mutableStateOf(false) }
 
+        BackHandler(enabled = showSettings || screen != SCREEN_LIST) {
+            if (showSettings) {
+                showSettings = false
+            } else {
+                screen = SCREEN_LIST
+            }
+        }
+
         LaunchedEffect(settings.syncIntervalMinutes, settings.backgroundSync, settings.wifiOnly) {
             SyncScheduler.schedule(
                 context = this@MainActivity,
@@ -117,6 +126,7 @@ class MainActivity : ComponentActivity() {
                 categories = categoryNames,
                 monospace = settings.monospace,
                 fontSizeSp = settings.fontSizeSp,
+                styled = settings.noteOpenMode == NoteOpenMode.RICH,
                 keepScreenOn = settings.keepScreenOn,
                 onClose = { screen = SCREEN_LIST },
             )
@@ -127,6 +137,7 @@ class MainActivity : ComponentActivity() {
                 categories = categoryNames,
                 monospace = settings.monospace,
                 fontSizeSp = settings.fontSizeSp,
+                styled = settings.noteOpenMode == NoteOpenMode.RICH,
                 keepScreenOn = settings.keepScreenOn,
                 onClose = { screen = SCREEN_LIST },
             )
@@ -144,12 +155,15 @@ class MainActivity : ComponentActivity() {
                     counts = counts,
                     categories = categories,
                     syncing = syncing,
+                    gridView = settings.gridView,
+                    swipeActions = settings.swipeActions,
                     syncError = syncError,
                     userInitial = userInitial,
                     query = query,
                     onQueryChange = notesViewModel::setQuery,
                     onSelectScope = notesViewModel::selectScope,
                     onToggleFavorite = notesViewModel::toggleFavorite,
+                    onDeleteNote = notesViewModel::deleteNote,
                     onNoteClick = {
                         editorKey++
                         screen = it.id

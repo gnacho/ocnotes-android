@@ -17,7 +17,9 @@ import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FormatSize
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.Swipe
 import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.AlertDialog
@@ -89,6 +91,11 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
                     ThemeMode.DARK -> "Oscuro"
                 },
             ) { dialog = "theme" }
+            ValueRow(
+                Icons.Outlined.Edit,
+                "Comportamiento de apertura de las notas",
+                if (settings.noteOpenMode == NoteOpenMode.PLAIN) "Modo de edición en texto plano" else "Editor con estilos",
+            ) { dialog = "openmode" }
             SwitchRow(
                 Icons.Outlined.TextFields,
                 "Edición directa",
@@ -110,6 +117,18 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
             SwitchRow(Icons.Outlined.LightMode, "Mantener la pantalla encendida", "Al ver o editar una nota", settings.keepScreenOn) {
                 viewModel.setKeepScreenOn(it)
             }
+            SwitchRow(
+                Icons.Outlined.GridView,
+                "Vista en cuadrícula",
+                null,
+                settings.gridView,
+            ) { viewModel.setGridView(it) }
+            SwitchRow(
+                Icons.Outlined.Swipe,
+                "Swipe actions",
+                "Marcar como favorita o borrar con un deslizamiento",
+                settings.swipeActions,
+            ) { viewModel.setSwipeActions(it) }
 
             HorizontalDivider()
             SectionHeader("Seguridad")
@@ -127,6 +146,13 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
             selected = settings.theme,
             onDismiss = { dialog = null },
             onPick = { viewModel.setTheme(it); dialog = null },
+        )
+        "openmode" -> OptionDialog(
+            title = "Comportamiento de apertura",
+            options = listOf(NoteOpenMode.PLAIN to "Modo de edición en texto plano", NoteOpenMode.RICH to "Editor con estilos"),
+            selected = settings.noteOpenMode,
+            onDismiss = { dialog = null },
+            onPick = { viewModel.setNoteOpenMode(it); dialog = null },
         )
         "fontsize" -> OptionDialog(
             title = "Tamaño de fuente",

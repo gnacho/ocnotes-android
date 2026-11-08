@@ -67,6 +67,8 @@ class FakeSettingsStore : SettingsStore {
     override suspend fun setFontSize(size: FontSizeOption) { state.value = state.value.copy(fontSize = size) }
     override suspend fun setKeepScreenOn(enabled: Boolean) { state.value = state.value.copy(keepScreenOn = enabled) }
     override suspend fun setPreventScreenshots(enabled: Boolean) { state.value = state.value.copy(preventScreenshots = enabled) }
+    override suspend fun setGridView(enabled: Boolean) { state.value = state.value.copy(gridView = enabled) }
+    override suspend fun setSwipeActions(enabled: Boolean) { state.value = state.value.copy(swipeActions = enabled) }
 }
 
 class FakeNoteDao : NoteDao {

@@ -22,12 +22,14 @@ data class AppSettings(
     val syncIntervalMinutes: Int = 15,
     val backgroundSync: Boolean = true,
     val wifiOnly: Boolean = false,
-    val noteOpenMode: NoteOpenMode = NoteOpenMode.RICH,
+    val noteOpenMode: NoteOpenMode = NoteOpenMode.PLAIN,
     val directEditing: Boolean = true,
     val monospace: Boolean = false,
     val fontSize: FontSizeOption = FontSizeOption.MEDIUM,
     val keepScreenOn: Boolean = true,
     val preventScreenshots: Boolean = false,
+    val gridView: Boolean = false,
+    val swipeActions: Boolean = true,
 ) {
     val fontSizeSp: Float
         get() = when (fontSize) {
@@ -49,6 +51,8 @@ interface SettingsStore {
     suspend fun setFontSize(size: FontSizeOption)
     suspend fun setKeepScreenOn(enabled: Boolean)
     suspend fun setPreventScreenshots(enabled: Boolean)
+    suspend fun setGridView(enabled: Boolean)
+    suspend fun setSwipeActions(enabled: Boolean)
 }
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
@@ -64,6 +68,8 @@ class DataStoreSettingsStore(private val context: Context) : SettingsStore {
     private val keyFontSize = stringPreferencesKey("font_size")
     private val keyKeepScreenOn = booleanPreferencesKey("keep_screen_on")
     private val keyPreventShot = booleanPreferencesKey("prevent_screenshots")
+    private val keyGridView = booleanPreferencesKey("grid_view")
+    private val keySwipeActions = booleanPreferencesKey("swipe_actions")
 
     override val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
         AppSettings(
@@ -77,6 +83,8 @@ class DataStoreSettingsStore(private val context: Context) : SettingsStore {
             fontSize = p[keyFontSize]?.let { runCatching { FontSizeOption.valueOf(it) }.getOrNull() } ?: FontSizeOption.MEDIUM,
             keepScreenOn = p[keyKeepScreenOn] ?: true,
             preventScreenshots = p[keyPreventShot] ?: false,
+            gridView = p[keyGridView] ?: false,
+            swipeActions = p[keySwipeActions] ?: true,
         )
     }
 
@@ -90,4 +98,6 @@ class DataStoreSettingsStore(private val context: Context) : SettingsStore {
     override suspend fun setFontSize(size: FontSizeOption) { context.dataStore.edit { it[keyFontSize] = size.name } }
     override suspend fun setKeepScreenOn(enabled: Boolean) { context.dataStore.edit { it[keyKeepScreenOn] = enabled } }
     override suspend fun setPreventScreenshots(enabled: Boolean) { context.dataStore.edit { it[keyPreventShot] = enabled } }
+    override suspend fun setGridView(enabled: Boolean) { context.dataStore.edit { it[keyGridView] = enabled } }
+    override suspend fun setSwipeActions(enabled: Boolean) { context.dataStore.edit { it[keySwipeActions] = enabled } }
 }

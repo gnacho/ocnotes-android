@@ -91,6 +91,10 @@ class NotesViewModel(private val repository: NotesRepository) : ViewModel() {
         viewModelScope.launch { repository.setFavorite(note.id, !note.favorite) }
     }
 
+    fun deleteNote(note: NoteEntity) {
+        viewModelScope.launch { repository.deleteNote(note.id) }
+    }
+
     fun sync() {
         viewModelScope.launch {
             _syncing.value = true
