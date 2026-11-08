@@ -4,6 +4,23 @@ All notable changes to ocnotes-android are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.4] - 2026-11-08
+
+### Fixed
+
+- Reopening a saved note closed the editor immediately: the editor ViewModel was
+  reused across opens (fixed key) and kept its `closed` flag. Each editor session
+  now gets a fresh ViewModel. This also fixes a second "new note" inheriting the
+  previous note's content.
+- A failed sync (offline, 4xx/5xx) crashed the app because the exception was
+  thrown from a coroutine without a handler. Sync failures now keep the local
+  cache and surface a "Sync failed" hint. Sync runs on open, so opening the app
+  offline used to crash.
+
+### Added
+
+- Adaptive launcher icon.
+
 ## [0.1.2] - 2026-11-08
 
 First functional release of the native Android client for ocnotes.
