@@ -1,6 +1,6 @@
 # ocnotes-android
 
-![version](https://img.shields.io/badge/version-0.1.6-blue)
+![version](https://img.shields.io/badge/version-0.1.8-blue)
 
 Native Android client for [ocnotes](https://github.com/gnacho/ocnotes), the notes app for OpenCloud.
 

@@ -4,6 +4,19 @@ All notable changes to ocnotes-android are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.8] - 2026-11-08
+
+### Changed
+
+- Redesigned the notes list to match the reference: a pill search bar with the
+  user avatar, note cards (star, title + date, preview + category chip), date
+  section headers (Hoy / Ayer / Esta semana / La semana pasada / Este mes / El
+  mes pasado / <mes> de <año>), favorites pinned first, pull-to-refresh and a
+  square blue FAB.
+- Dark-first Material 3 palette sampled from the reference, with a coherent
+  light variant; the editor, login and settings adopt it too.
+- Functional client-side search (title, content, category).
+
 ## [0.1.6] - 2026-11-08
 
 ### Added
