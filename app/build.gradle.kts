@@ -31,8 +31,8 @@ android {
         applicationId = "app.ocnotes"
         minSdk = 29
         targetSdk = 37
-        versionCode = 11
-        versionName = "0.1.22"
+        versionCode = 12
+        versionName = "0.1.24"
     }
 
     buildTypes {
