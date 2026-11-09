@@ -18,10 +18,13 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 
 private val IMG_SRC = Regex("<img[^>]*\\bsrc\\s*=\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE)
-private val A_HREF = Regex("<a[^>]*\\bhref\\s*=\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE)
+private val HREF_SRC = Regex("<a[^>]*\\bhref\\s*=\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE)
+private val HTML_TAG = Regex("<[^>]*>")
 
 // Read-only note view: markdown-styled text per line, plus real images for raw
-// HTML <img> (e.g. a YouTube thumbnail) and clickable <a href> links.
+// HTML <img> (e.g. a YouTube thumbnail) and clickable <a href> links. Raw HTML
+// tags are stripped from text lines, and an <a href> on its own line wraps the
+// following <img> (the common multi-line YouTube embed).
 @Composable
 fun MarkdownContentView(
     content: String,
@@ -32,10 +35,11 @@ fun MarkdownContentView(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.verticalScroll(rememberScrollState())) {
+        var pendingHref: String? = null
         content.split("\n").forEach { line ->
             val src = IMG_SRC.find(line)?.groupValues?.get(1)
             if (src != null) {
-                val href = A_HREF.find(line)?.groupValues?.get(1)
+                val href = HREF_SRC.find(line)?.groupValues?.get(1) ?: pendingHref
                 AsyncImage(
                     model = src,
                     contentDescription = null,
@@ -47,11 +51,16 @@ fun MarkdownContentView(
                         .clip(RoundedCornerShape(8.dp))
                         .then(if (href != null) Modifier.clickable { onOpenLink(href) } else Modifier),
                 )
+                pendingHref = null
             } else {
-                Text(
-                    text = markdownAnnotatedString(line.ifEmpty { " " }, style, searchQuery),
-                    style = textStyle,
-                )
+                HREF_SRC.find(line)?.groupValues?.get(1)?.let { pendingHref = it }
+                val text = line.replace(HTML_TAG, "").trim()
+                if (text.isNotEmpty()) {
+                    Text(
+                        text = markdownAnnotatedString(text, style, searchQuery),
+                        style = textStyle,
+                    )
+                }
             }
         }
     }
