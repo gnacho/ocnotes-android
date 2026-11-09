@@ -6,6 +6,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -117,65 +124,78 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        when {
-            showSettings -> SettingsScreen(viewModel = settingsViewModel, onBack = { showSettings = false })
-            screen == SCREEN_NEW -> NoteEditorScreen(
-                viewModel = viewModel(key = "editor-$editorKey") {
-                    NoteEditorViewModel(repository, null, startInEdit = settings.directEditing)
+        if (showSettings) {
+            SettingsScreen(viewModel = settingsViewModel, onBack = { showSettings = false })
+        } else {
+            AnimatedContent(
+                targetState = screen,
+                transitionSpec = {
+                    val forward = targetState > initialState
+                    (slideInHorizontally(tween(250)) { w -> if (forward) w else -w } + fadeIn(tween(250))) togetherWith
+                        (slideOutHorizontally(tween(250)) { w -> if (forward) -w else w } + fadeOut(tween(250)))
                 },
-                categories = categoryNames,
-                monospace = settings.monospace,
-                fontSizeSp = settings.fontSizeSp,
-                styled = settings.noteOpenMode == NoteOpenMode.RICH,
-                keepScreenOn = settings.keepScreenOn,
-                onClose = { screen = SCREEN_LIST },
-            )
-            screen > 0L -> NoteEditorScreen(
-                viewModel = viewModel(key = "editor-$editorKey") {
-                    NoteEditorViewModel(repository, screen, startInEdit = settings.directEditing)
-                },
-                categories = categoryNames,
-                monospace = settings.monospace,
-                fontSizeSp = settings.fontSizeSp,
-                styled = settings.noteOpenMode == NoteOpenMode.RICH,
-                keepScreenOn = settings.keepScreenOn,
-                onClose = { screen = SCREEN_LIST },
-            )
-            else -> {
-                val notes by notesViewModel.notes.collectAsStateWithLifecycle()
-                val scope by notesViewModel.scopeState.collectAsStateWithLifecycle()
-                val syncing by notesViewModel.syncing.collectAsStateWithLifecycle()
-                val syncError by notesViewModel.syncError.collectAsStateWithLifecycle()
-                val query by notesViewModel.query.collectAsStateWithLifecycle()
-                val session by repository.session.collectAsStateWithLifecycle(initialValue = null)
-                val userInitial = session?.username?.trim()?.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
-                NotesScreen(
-                    notes = notes,
-                    scope = scope,
-                    counts = counts,
-                    categories = categories,
-                    syncing = syncing,
-                    gridView = settings.gridView,
-                    swipeActions = settings.swipeActions,
-                    syncError = syncError,
-                    userInitial = userInitial,
-                    query = query,
-                    onQueryChange = notesViewModel::setQuery,
-                    onSelectScope = notesViewModel::selectScope,
-                    onToggleFavorite = notesViewModel::toggleFavorite,
-                    onDeleteNote = notesViewModel::deleteNote,
-                    onNoteClick = {
-                        editorKey++
-                        screen = it.id
-                    },
-                    onNewNote = {
-                        editorKey++
-                        screen = SCREEN_NEW
-                    },
-                    onSync = notesViewModel::sync,
-                    onLogout = notesViewModel::logout,
-                    onOpenSettings = { showSettings = true },
-                )
+                label = "note-navigation",
+            ) { target ->
+                when {
+                    target == SCREEN_NEW -> NoteEditorScreen(
+                        viewModel = viewModel(key = "editor-$editorKey") {
+                            NoteEditorViewModel(repository, null, startInEdit = settings.directEditing)
+                        },
+                        categories = categoryNames,
+                        monospace = settings.monospace,
+                        fontSizeSp = settings.fontSizeSp,
+                        styled = settings.noteOpenMode == NoteOpenMode.RICH,
+                        keepScreenOn = settings.keepScreenOn,
+                        onClose = { screen = SCREEN_LIST },
+                    )
+                    target > 0L -> NoteEditorScreen(
+                        viewModel = viewModel(key = "editor-$editorKey") {
+                            NoteEditorViewModel(repository, target, startInEdit = settings.directEditing)
+                        },
+                        categories = categoryNames,
+                        monospace = settings.monospace,
+                        fontSizeSp = settings.fontSizeSp,
+                        styled = settings.noteOpenMode == NoteOpenMode.RICH,
+                        keepScreenOn = settings.keepScreenOn,
+                        onClose = { screen = SCREEN_LIST },
+                    )
+                    else -> {
+                        val notes by notesViewModel.notes.collectAsStateWithLifecycle()
+                        val scope by notesViewModel.scopeState.collectAsStateWithLifecycle()
+                        val syncing by notesViewModel.syncing.collectAsStateWithLifecycle()
+                        val syncError by notesViewModel.syncError.collectAsStateWithLifecycle()
+                        val query by notesViewModel.query.collectAsStateWithLifecycle()
+                        val session by repository.session.collectAsStateWithLifecycle(initialValue = null)
+                        val userInitial = session?.username?.trim()?.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+                        NotesScreen(
+                            notes = notes,
+                            scope = scope,
+                            counts = counts,
+                            categories = categories,
+                            syncing = syncing,
+                            gridView = settings.gridView,
+                            swipeActions = settings.swipeActions,
+                            syncError = syncError,
+                            userInitial = userInitial,
+                            query = query,
+                            onQueryChange = notesViewModel::setQuery,
+                            onSelectScope = notesViewModel::selectScope,
+                            onToggleFavorite = notesViewModel::toggleFavorite,
+                            onDeleteNote = notesViewModel::deleteNote,
+                            onNoteClick = {
+                                editorKey++
+                                screen = it.id
+                            },
+                            onNewNote = {
+                                editorKey++
+                                screen = SCREEN_NEW
+                            },
+                            onSync = notesViewModel::sync,
+                            onLogout = notesViewModel::logout,
+                            onOpenSettings = { showSettings = true },
+                        )
+                    }
+                }
             }
         }
     }
