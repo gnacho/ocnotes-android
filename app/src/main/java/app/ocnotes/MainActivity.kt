@@ -8,8 +8,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -40,6 +38,14 @@ import app.ocnotes.ui.theme.NotesTheme
 // Screen routing. -1 = list, 0 = new note, >0 = edit note by id.
 private const val SCREEN_LIST = -1L
 private const val SCREEN_NEW = 0L
+private const val SCREEN_SETTINGS = -2L
+
+// Screens ordered by depth, so the slide always goes the same way.
+private fun screenRank(screen: Long): Int = when {
+    screen == SCREEN_LIST -> 0
+    screen == SCREEN_SETTINGS -> 1
+    else -> 2
+}
 
 class MainActivity : ComponentActivity() {
 
@@ -105,14 +111,9 @@ class MainActivity : ComponentActivity() {
 
         var screen by rememberSaveable { mutableStateOf(if (initialNoteId > 0) initialNoteId else SCREEN_LIST) }
         var editorKey by rememberSaveable { mutableStateOf(0L) }
-        var showSettings by rememberSaveable { mutableStateOf(false) }
 
-        BackHandler(enabled = showSettings || screen != SCREEN_LIST) {
-            if (showSettings) {
-                showSettings = false
-            } else {
-                screen = SCREEN_LIST
-            }
+        BackHandler(enabled = screen != SCREEN_LIST) {
+            screen = SCREEN_LIST
         }
 
         LaunchedEffect(settings.syncIntervalMinutes, settings.backgroundSync, settings.wifiOnly) {
@@ -124,19 +125,20 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        if (showSettings) {
-            SettingsScreen(viewModel = settingsViewModel, onBack = { showSettings = false })
-        } else {
-            AnimatedContent(
-                targetState = screen,
-                transitionSpec = {
-                    val forward = targetState > initialState
-                    (slideInHorizontally(tween(250)) { w -> if (forward) w else -w } + fadeIn(tween(250))) togetherWith
-                        (slideOutHorizontally(tween(250)) { w -> if (forward) -w else w } + fadeOut(tween(250)))
-                },
-                label = "note-navigation",
-            ) { target ->
-                when {
+        AnimatedContent(
+            targetState = screen,
+            transitionSpec = {
+                val forward = screenRank(targetState) > screenRank(initialState)
+                (slideInHorizontally(tween(300)) { w -> if (forward) w else -w }) togetherWith
+                    (slideOutHorizontally(tween(300)) { w -> if (forward) -w else w })
+            },
+            label = "note-navigation",
+        ) { target ->
+            when {
+                target == SCREEN_SETTINGS -> SettingsScreen(
+                    viewModel = settingsViewModel,
+                    onBack = { screen = SCREEN_LIST },
+                )
                     target == SCREEN_NEW -> NoteEditorScreen(
                         viewModel = viewModel(key = "editor-$editorKey") {
                             NoteEditorViewModel(repository, null, startInEdit = settings.directEditing)
@@ -192,11 +194,10 @@ class MainActivity : ComponentActivity() {
                             },
                             onSync = notesViewModel::sync,
                             onLogout = notesViewModel::logout,
-                            onOpenSettings = { showSettings = true },
+                            onOpenSettings = { screen = SCREEN_SETTINGS },
                         )
                     }
                 }
-            }
         }
     }
 }
