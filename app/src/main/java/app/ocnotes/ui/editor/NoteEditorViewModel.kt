@@ -10,15 +10,17 @@ import kotlinx.coroutines.launch
 
 enum class EditorMode { VIEW, EDIT }
 
-// Editor for one note. `noteId == null` is the "new note" mode.
+// Editor for one note. `noteId == null` is the "new note" mode; it is created on
+// the first persist that has some content. Edits are persisted on back/dialogs
+// and by the explicit "Guardar" action, so changing the category or the text is
+// never silently lost.
 class NoteEditorViewModel(
     private val repository: NotesRepository,
     private val noteId: Long?,
     startInEdit: Boolean = true,
 ) : ViewModel() {
     val isNew: Boolean = noteId == null
-
-    fun savedNoteId(): Long? = noteId
+    private var currentId: Long? = noteId
 
     private val _title = MutableStateFlow("")
     private val _content = MutableStateFlow("")
@@ -46,8 +48,10 @@ class NoteEditorViewModel(
         reload()
     }
 
+    fun savedNoteId(): Long? = currentId
+
     fun reload() {
-        val id = noteId ?: return
+        val id = currentId ?: return
         viewModelScope.launch {
             repository.getNote(id)?.let { note ->
                 _title.value = note.title
@@ -84,29 +88,39 @@ class NoteEditorViewModel(
 
     fun setCategory(value: String) {
         _category.value = value
+        _error.value = null
     }
 
     fun toggleFavorite() {
-        val id = noteId ?: return
+        val id = currentId ?: return
         viewModelScope.launch {
             _favorite.update { !it }
             repository.setFavorite(id, _favorite.value)
         }
     }
 
-    fun save() {
+    fun save() = persist(close = true)
+
+    // Persists the current title/content/category. For a new note it creates it
+    // on the first non-empty persist. `close` navigates back once stored.
+    fun persist(close: Boolean = false) {
         if (_busy.value) return
         viewModelScope.launch {
             _busy.value = true
             try {
-                if (noteId == null) {
-                    repository.createNote(_title.value, _content.value, _category.value)
-                    _closed.value = true
+                val id = currentId
+                if (id == null) {
+                    if (_title.value.isBlank() && _content.value.isBlank()) {
+                        if (close) _closed.value = true
+                        return@launch
+                    }
+                    val created = repository.createNote(_title.value, _content.value, _category.value)
+                    currentId = created.id
                 } else {
-                    repository.updateNote(noteId, _title.value, _content.value, _category.value)
-                    _closed.value = true
+                    repository.updateNote(id, _title.value, _content.value, _category.value)
                     runCatching { repository.pushPending() }
                 }
+                if (close) _closed.value = true
             } catch (e: Exception) {
                 _error.value = e.message ?: "Save failed"
             } finally {
@@ -116,7 +130,7 @@ class NoteEditorViewModel(
     }
 
     fun delete() {
-        val id = noteId ?: return
+        val id = currentId ?: return
         if (_busy.value) return
         viewModelScope.launch {
             _busy.value = true
