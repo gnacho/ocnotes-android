@@ -29,6 +29,30 @@ fun formatCardDate(epochSeconds: Long, zone: ZoneId = ZoneId.systemDefault()): S
 
 private fun monthYear(year: Int, month: Int) = "${MONTHS_LONG[month - 1]} de $year"
 
+private val IMAGE_MD = Regex("!\\[([^\\]]*)]\\([^)]*\\)")
+private val LINK_MD = Regex("\\[([^\\]]+)]\\([^)]*\\)")
+private val HTML_TAG = Regex("<[^>]*>")
+private val HEADING_MARKER = Regex("^\\s*#{1,6}\\s*", RegexOption.MULTILINE)
+private val BULLET_MARKER = Regex("(?m)^\\s*[-*+]\\s+")
+private val QUOTE_MARKER = Regex("(?m)^\\s*>\\s*")
+private val CODE_MARKER = Regex("`{1,3}")
+private val EMPHASIS_MARKER = Regex("\\*{1,3}|_{1,3}|~~")
+
+// Plain, single-line text for the list preview: no markdown, no HTML, no markers.
+fun plainPreview(content: String): String {
+    if (content.isBlank()) return ""
+    var t = content
+    t = t.replace(IMAGE_MD, "$1")
+    t = t.replace(LINK_MD, "$1")
+    t = t.replace(HTML_TAG, " ")
+    t = t.replace(HEADING_MARKER, "")
+    t = t.replace(BULLET_MARKER, "")
+    t = t.replace(QUOTE_MARKER, "")
+    t = t.replace(CODE_MARKER, "")
+    t = t.replace(EMPHASIS_MARKER, "")
+    return t.replace(Regex("\\s+"), " ").trim()
+}
+
 // (order, label) for one note's date. Lower order = more recent section.
 private fun classify(date: LocalDate, today: LocalDate, wf: WeekFields): Pair<Int, String> {
     if (date == today) return 0 to "Hoy"
