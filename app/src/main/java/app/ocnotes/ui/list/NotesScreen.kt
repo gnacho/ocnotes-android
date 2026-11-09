@@ -21,8 +21,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -75,12 +75,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.activity.compose.BackHandler
 import app.ocnotes.data.local.NoteEntity
@@ -222,7 +224,11 @@ fun NotesScreen(
             exit = slideOutHorizontally(targetOffsetX = { -it }),
             modifier = Modifier.align(Alignment.TopStart),
         ) {
-            ModalDrawerSheet(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.8f)) {
+            ModalDrawerSheet(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(drawerWidth(LocalConfiguration.current.screenWidthDp)),
+            ) {
                 var showAbout by remember { mutableStateOf(false) }
                 fun pick(s: NotesScope) {
                     onSelectScope(s)
@@ -597,4 +603,14 @@ private fun CategoryChip(text: String) {
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(horizontal = 8.dp, vertical = 3.dp),
     )
+}
+
+// The drawer is half the screen on a phone, narrower on wide screens, and never
+// wider than MAX_DRAWER_DP, like the official Nextcloud clients.
+private const val MIN_DRAWER_DP = 240f
+private const val MAX_DRAWER_DP = 320f
+
+private fun drawerWidth(screenWidthDp: Int): Dp {
+    val width = if (screenWidthDp > 0) screenWidthDp.toFloat() else 360f
+    return (width * 0.5f).coerceIn(MIN_DRAWER_DP, MAX_DRAWER_DP).dp
 }

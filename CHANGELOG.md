@@ -4,6 +4,12 @@ All notable changes to ocnotes-android are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.32] - 2026-11-10
+
+### Changed
+
+- The side drawer is now half the screen wide on a phone, narrower on wide screens and never wider than 320 dp, instead of a fixed 80% on every device.
+
 ## [0.1.30] - 2026-11-09
 
 ### Changed
