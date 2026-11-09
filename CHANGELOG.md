@@ -4,6 +4,17 @@ All notable changes to ocnotes-android are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.20] - 2026-11-09
+
+### Fixed
+
+- A multi-line YouTube/HTML embed showed the raw `<a>`/`</a>` tags as text; the
+  note view now strips them and renders only the thumbnail (image + clickable
+  link).
+- Tapping outside the side drawer did not close it (the built-in scrim is
+  disabled when gestures are off). The drawer is now a custom sheet with its own
+  scrim, so an outside tap closes it.
+
 ## [0.1.18] - 2026-11-09
 
 ### Fixed
