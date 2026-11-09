@@ -3,6 +3,8 @@ package app.ocnotes.ui.list
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.clickable
@@ -198,7 +200,11 @@ fun NotesScreen(
             }
         }
 
-        if (drawerOpen) {
+        AnimatedVisibility(
+            visible = drawerOpen,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
             Box(
                 Modifier
                     .fillMaxSize()
@@ -227,7 +233,10 @@ fun NotesScreen(
                         "ocnotes",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { drawerOpen = false }
+                            .padding(horizontal = 16.dp),
                     )
                     Spacer(Modifier.height(8.dp))
                     DrawerItem("Todas las notas", Icons.Outlined.Schedule, counts.total, scope == NotesScope.All) { pick(NotesScope.All) }
