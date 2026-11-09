@@ -2,13 +2,18 @@ package app.ocnotes.ui.list
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -65,6 +70,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -102,75 +108,19 @@ fun NotesScreen(
     onLogout: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-    val coroutineScope = rememberCoroutineScope()
     val entries = remember(notes) { buildNoteList(notes) }
+    var drawerOpen by rememberSaveable { mutableStateOf(false) }
 
-    // Back closes the drawer instead of leaving the app.
-    BackHandler(enabled = drawerState.isOpen) {
-        coroutineScope.launch { drawerState.close() }
-    }
+    BackHandler(enabled = drawerOpen) { drawerOpen = false }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        gesturesEnabled = !swipeActions,
-        drawerContent = {
-            ModalDrawerSheet(modifier = Modifier.fillMaxWidth(0.8f)) {
-                var showAbout by remember { mutableStateOf(false) }
-                fun pick(s: NotesScope) {
-                    onSelectScope(s)
-                    coroutineScope.launch { drawerState.close() }
-                }
-                Column(Modifier.fillMaxSize().padding(vertical = 16.dp)) {
-                    Text(
-                        "ocnotes",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    DrawerItem("Todas las notas", Icons.Outlined.Schedule, counts.total, scope == NotesScope.All) { pick(NotesScope.All) }
-                    DrawerItem("Favoritos", Icons.Outlined.StarBorder, counts.favorites, scope == NotesScope.Favorites) { pick(NotesScope.Favorites) }
-                    DrawerItem("Sin categoría", Icons.Outlined.Folder, counts.uncategorized, scope == NotesScope.Uncategorized) { pick(NotesScope.Uncategorized) }
-                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                    Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                        categories.forEach { c ->
-                            DrawerItem(
-                                c.name,
-                                Icons.Outlined.Folder,
-                                c.count,
-                                scope == NotesScope.Category(c.name),
-                            ) { pick(NotesScope.Category(c.name)) }
-                        }
-                    }
-                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                    DrawerItem("Ajustes", Icons.Filled.Settings, null, false) {
-                        coroutineScope.launch { drawerState.close() }
-                        onOpenSettings()
-                    }
-                    DrawerItem("Acerca de", Icons.Outlined.Info, null, false) { showAbout = true }
-                    TextButton(onClick = onLogout, modifier = Modifier.padding(horizontal = 8.dp)) {
-                        Text("Cerrar sesión")
-                    }
-                }
-                if (showAbout) {
-                    AlertDialog(
-                        onDismissRequest = { showAbout = false },
-                        title = { Text("ocnotes") },
-                        text = { Text("Cliente de notas para OpenCloud / Nextcloud.\nVersión ${app.ocnotes.BuildConfig.VERSION_NAME}") },
-                        confirmButton = { TextButton(onClick = { showAbout = false }) { Text("Cerrar") } },
-                    )
-                }
-            }
-        },
-    ) {
+    Box(Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
                 NotesTopBar(
                     query = query,
                     onQueryChange = onQueryChange,
                     userInitial = userInitial,
-                    onMenu = { coroutineScope.launch { drawerState.open() } },
+                    onMenu = { drawerOpen = true },
                 )
             },
             floatingActionButton = {
@@ -244,6 +194,73 @@ fun NotesScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+
+        if (drawerOpen) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.32f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) { drawerOpen = false },
+            )
+        }
+
+        AnimatedVisibility(
+            visible = drawerOpen,
+            enter = slideInHorizontally(initialOffsetX = { -it }),
+            exit = slideOutHorizontally(targetOffsetX = { -it }),
+            modifier = Modifier.align(Alignment.TopStart),
+        ) {
+            ModalDrawerSheet(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.8f)) {
+                var showAbout by remember { mutableStateOf(false) }
+                fun pick(s: NotesScope) {
+                    onSelectScope(s)
+                    drawerOpen = false
+                }
+                Column(Modifier.fillMaxSize().padding(vertical = 16.dp)) {
+                    Text(
+                        "ocnotes",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    DrawerItem("Todas las notas", Icons.Outlined.Schedule, counts.total, scope == NotesScope.All) { pick(NotesScope.All) }
+                    DrawerItem("Favoritos", Icons.Outlined.StarBorder, counts.favorites, scope == NotesScope.Favorites) { pick(NotesScope.Favorites) }
+                    DrawerItem("Sin categoría", Icons.Outlined.Folder, counts.uncategorized, scope == NotesScope.Uncategorized) { pick(NotesScope.Uncategorized) }
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                        categories.forEach { c ->
+                            DrawerItem(
+                                c.name,
+                                Icons.Outlined.Folder,
+                                c.count,
+                                scope == NotesScope.Category(c.name),
+                            ) { pick(NotesScope.Category(c.name)) }
+                        }
+                    }
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    DrawerItem("Ajustes", Icons.Filled.Settings, null, false) {
+                        drawerOpen = false
+                        onOpenSettings()
+                    }
+                    DrawerItem("Acerca de", Icons.Outlined.Info, null, false) { showAbout = true }
+                    TextButton(onClick = onLogout, modifier = Modifier.padding(horizontal = 8.dp)) {
+                        Text("Cerrar sesión")
+                    }
+                }
+                if (showAbout) {
+                    AlertDialog(
+                        onDismissRequest = { showAbout = false },
+                        title = { Text("ocnotes") },
+                        text = { Text("Cliente de notas para OpenCloud / Nextcloud.\nVersión ${app.ocnotes.BuildConfig.VERSION_NAME}") },
+                        confirmButton = { TextButton(onClick = { showAbout = false }) { Text("Cerrar") } },
+                    )
                 }
             }
         }
