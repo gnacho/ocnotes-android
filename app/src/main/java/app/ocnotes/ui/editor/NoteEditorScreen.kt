@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color as AndroidColor
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -102,6 +103,8 @@ fun NoteEditorScreen(
     val context = LocalContext.current
     val view = LocalView.current
     LaunchedEffect(closed) { if (closed) onClose() }
+    // Back (button or gesture) saves before leaving, so edits are never lost.
+    BackHandler { viewModel.persist(close = true) }
     DisposableEffect(keepScreenOn) {
         view.keepScreenOn = keepScreenOn
         onDispose { view.keepScreenOn = false }
@@ -138,7 +141,7 @@ fun NoteEditorScreen(
                 mode = mode,
                 searchActive = searchActive,
                 canFavorite = !viewModel.isNew,
-                onBack = onClose,
+                onBack = { viewModel.persist(close = true) },
                 onSearch = { viewModel.setSearchActive(!searchActive) },
                 onToggleMode = viewModel::toggleMode,
                 onFavorite = viewModel::toggleFavorite,
@@ -147,6 +150,7 @@ fun NoteEditorScreen(
                 onShare = { shareNote(context, viewModel.shareText()) },
                 onDelete = { showDelete = true },
                 onCancel = onClose,
+                onSave = { viewModel.persist() },
                 onPin = {
                     viewModel.savedNoteId()?.let { id -> pinNoteToHome(context, id, title) }
                 },
@@ -208,6 +212,7 @@ fun NoteEditorScreen(
             onDismiss = { showRename = false },
             onConfirm = { value ->
                 viewModel.onTitleChange(value)
+                viewModel.persist()
                 showRename = false
             },
         )
@@ -219,6 +224,7 @@ fun NoteEditorScreen(
             onDismiss = { showCategory = false },
             onConfirm = { value ->
                 viewModel.setCategory(value)
+                viewModel.persist()
                 showCategory = false
             },
         )
@@ -256,6 +262,7 @@ private fun EditorTopBar(
     onShare: () -> Unit,
     onDelete: () -> Unit,
     onCancel: () -> Unit,
+    onSave: () -> Unit,
     onPin: () -> Unit,
     canPin: Boolean,
 ) {
@@ -319,6 +326,7 @@ private fun EditorTopBar(
             onShare = onShare,
             onDelete = onDelete,
             onCancel = onCancel,
+            onSave = onSave,
             onPin = onPin,
             canPin = canPin,
             canFavorite = canFavorite,
@@ -334,6 +342,7 @@ private fun OverflowMenu(
     onShare: () -> Unit,
     onDelete: () -> Unit,
     onCancel: () -> Unit,
+    onSave: () -> Unit,
     onPin: () -> Unit,
     canPin: Boolean,
     canFavorite: Boolean,
@@ -345,6 +354,7 @@ private fun OverflowMenu(
             Icon(Icons.Filled.MoreVert, contentDescription = "Más")
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(text = { Text("Guardar") }, onClick = { open = false; onSave() })
             DropdownMenuItem(text = { Text("Cambiar nombre") }, onClick = { open = false; onRename() })
             DropdownMenuItem(text = { Text("Categoría") }, onClick = { open = false; onCategory() })
             DropdownMenuItem(text = { Text("Compartir") }, onClick = { open = false; onShare() })
