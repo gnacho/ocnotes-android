@@ -4,22 +4,32 @@ All notable changes to ocnotes-android are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [0.1.28] - 2026-11-09
+## [0.1.30] - 2026-11-09
 
 ### Changed
 
 - Settings now slides in and out like the rest of the screens, instead of appearing at once.
 - The navigation animation is a plain 300 ms slide, matching ocnews: no more cross fade.
+
+## [0.1.28] - 2026-11-09
+
+### Changed
+
+- The editor defaults to live markdown styling (bold, italics and headings render while editing) instead of plain text.
+- Swipe transition between the note editor and the list.
+
 ## [0.1.26] - 2026-11-09
 
 ### Changed
 
 - New launcher glyph: lucide "notepad-text" (notepad with three rings and three lines) in white, replacing the rounded page with orange lines. It matches the icon family used by ocnews and ocphotos.
+
 ## [0.1.24] - 2026-11-09
 
 ### Changed
 
 - New app icon background: the OpenCloud radial gradient (lilac centre to dark teal edge) replaces the flat orange, matching ocnews. The gradient radius is tuned so the dark rim stays inside the launcher mask.
+
 ## [0.1.22] - 2026-11-09
 
 ### Fixed
