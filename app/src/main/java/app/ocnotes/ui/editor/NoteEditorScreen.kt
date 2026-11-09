@@ -172,16 +172,18 @@ fun NoteEditorScreen(
             }
             Box(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
                 if (mode == EditorMode.VIEW) {
-                    SelectionContainer {
-                        Text(
-                            text = if (styled) markdownAnnotatedString(content, style, searchQuery) else androidx.compose.ui.text.AnnotatedString(content),
-                            style = textStyle,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-                                .padding(vertical = 12.dp),
-                        )
-                    }
+                    MarkdownContentView(
+                        content = content,
+                        style = style,
+                        textStyle = textStyle,
+                        searchQuery = searchQuery,
+                        onOpenLink = { url ->
+                            runCatching {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize().padding(vertical = 12.dp),
+                    )
                 } else {
                     BasicTextField(
                         value = content,

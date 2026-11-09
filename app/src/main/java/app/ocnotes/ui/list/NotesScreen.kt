@@ -467,11 +467,12 @@ private fun NoteCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (note.content.isNotBlank() || note.category.isNotBlank()) {
+                val preview = plainPreview(note.content)
+                if (preview.isNotEmpty() || note.category.isNotBlank()) {
                     Spacer(Modifier.height(2.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = note.content.replace('\n', ' ').trim(),
+                            text = preview,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -524,10 +525,11 @@ private fun GridNoteCard(
                     )
                 }
             }
-            if (note.content.isNotBlank()) {
+            val preview = plainPreview(note.content)
+            if (preview.isNotEmpty()) {
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = note.content.replace('\n', ' ').trim(),
+                    text = preview,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 3,

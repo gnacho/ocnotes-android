@@ -11,6 +11,14 @@ class NoteListModelTest {
 
     private val zone = ZoneId.of("UTC")
 
+    @Test
+    fun `plainPreview strips markdown and html`() {
+        assertEquals("Exterior Herrero: Marquesina", plainPreview("## Exterior\nHerrero:\n- Marquesina"))
+        assertEquals("negrita cursiva", plainPreview("**negrita** *cursiva*"))
+        assertEquals("link code", plainPreview("[link](http://u) `code`"))
+        assertEquals("", plainPreview("<a href=\"x\"><img src=\"y\"></a>"))
+    }
+
     private fun secs(y: Int, m: Int, d: Int): Long =
         LocalDate.of(y, m, d).atTime(12, 0).atZone(zone).toEpochSecond()
 
