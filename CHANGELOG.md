@@ -4,6 +4,11 @@ All notable changes to ocnotes-android are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.26] - 2026-11-09
+
+### Changed
+
+- New launcher glyph: lucide "notepad-text" (notepad with three rings and three lines) in white, replacing the rounded page with orange lines. It matches the icon family used by ocnews and ocphotos.
 ## [0.1.24] - 2026-11-09
 
 ### Changed
