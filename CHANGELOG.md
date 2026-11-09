@@ -4,6 +4,23 @@ All notable changes to ocnotes-android are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.18] - 2026-11-09
+
+### Fixed
+
+- Note edits (category, title, content) were not saved: the redesigned editor
+  had no save action. They now persist when confirming the category/rename
+  dialogs, when leaving with Back, and via an explicit "Guardar" item.
+- The side drawer opens at ~80% width, and Back closes the open drawer instead of
+  leaving the app.
+
+### Changed
+
+- The list preview shows plain text (markdown and HTML stripped).
+- The note view renders raw-HTML `<img>` as a real image (Coil + OkHttp) and
+  makes a wrapping `<a href>` clickable, so a pasted YouTube embed previews with
+  its thumbnail.
+
 ## [0.1.16] - 2026-11-09
 
 ### Fixed
