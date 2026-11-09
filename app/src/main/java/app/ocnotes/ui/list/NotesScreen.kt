@@ -74,6 +74,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.BackHandler
 import app.ocnotes.data.local.NoteEntity
 import app.ocnotes.ui.theme.FavoriteStar
 import kotlinx.coroutines.launch
@@ -105,11 +106,16 @@ fun NotesScreen(
     val coroutineScope = rememberCoroutineScope()
     val entries = remember(notes) { buildNoteList(notes) }
 
+    // Back closes the drawer instead of leaving the app.
+    BackHandler(enabled = drawerState.isOpen) {
+        coroutineScope.launch { drawerState.close() }
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = !swipeActions,
         drawerContent = {
-            ModalDrawerSheet {
+            ModalDrawerSheet(modifier = Modifier.fillMaxWidth(0.8f)) {
                 var showAbout by remember { mutableStateOf(false) }
                 fun pick(s: NotesScope) {
                     onSelectScope(s)
