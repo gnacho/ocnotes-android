@@ -4,6 +4,13 @@ All notable changes to ocnotes-android are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.22] - 2026-11-09
+
+### Fixed
+
+- The side drawer now animates its collapse (scrim fade + sheet slide) when
+  closed by tapping outside, pressing back, or tapping the drawer's own title.
+
 ## [0.1.20] - 2026-11-09
 
 ### Fixed
