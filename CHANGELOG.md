@@ -4,6 +4,12 @@ All notable changes to ocnotes-android are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.34] - 2026-11-10
+
+### Changed
+
+- New icon: flat #20434F background with the notepad glyph in #E2BAFF, matching ocnews and ocphotos.
+
 ## [0.1.32] - 2026-11-10
 
 ### Changed
