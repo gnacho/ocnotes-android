@@ -90,12 +90,45 @@ class NotesViewModelTest {
                 noteDao = FakeNoteDao(),
                 apiFactory = { FakeNotesApi(notesErrorCode = 500) },
             )
-            // init { sync() } runs against a throwing API: must not throw.
+            // A throwing API must surface as an error, not as a crash.
             val vm = NotesViewModel(repo)
+            vm.sync()
             advanceUntilIdle()
 
             assertNotNull(vm.syncError.value)
             assertFalse(vm.syncing.value)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `signing out and in again triggers another sync`() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val store = FakeSessionStore(Session("https://example.com", "alice", "token"))
+            val api = FakeNotesApi()
+            val repo = NotesRepository(
+                sessionStore = store,
+                noteDao = FakeNoteDao(),
+                apiFactory = { api },
+            )
+            val vm = NotesViewModel(repo)
+
+            // First composition with a session, right after the first login.
+            vm.sync()
+            advanceUntilIdle()
+            assertEquals(1, api.notesCalls.size)
+
+            // Sign out clears the session and the local data, and the ViewModel survives.
+            store.clear()
+            // Back in: the composable observes the session again and asks for a sync.
+            store.save(Session("https://example.com", "alice", "token"))
+            vm.sync()
+            advanceUntilIdle()
+
+            assertEquals(2, api.notesCalls.size)
         } finally {
             Dispatchers.resetMain()
         }

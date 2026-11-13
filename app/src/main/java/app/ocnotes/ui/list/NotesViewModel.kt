@@ -47,10 +47,6 @@ class NotesViewModel(private val repository: NotesRepository) : ViewModel() {
     private val _syncing = MutableStateFlow(false)
     private val _syncError = MutableStateFlow<String?>(null)
 
-    init {
-        sync()
-    }
-
     val scopeState: StateFlow<NotesScope> = scope
     val query: StateFlow<String> = _query
     val syncing: StateFlow<Boolean> = _syncing
