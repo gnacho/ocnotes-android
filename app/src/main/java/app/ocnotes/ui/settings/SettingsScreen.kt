@@ -18,6 +18,7 @@ import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FormatSize
 import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Swipe
 import androidx.compose.material.icons.outlined.TextFields
@@ -51,7 +52,7 @@ import app.ocnotes.data.settings.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
+fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit, onReauthenticate: () -> Unit) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     var dialog by remember { mutableStateOf<String?>(null) }
 
@@ -136,6 +137,14 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
             SwitchRow(Icons.Outlined.Block, "Evitar la captura de pantalla", null, settings.preventScreenshots) {
                 viewModel.setPreventScreenshots(it)
             }
+
+            HorizontalDivider()
+            SectionHeader("Cuenta")
+            ValueRow(
+                Icons.Outlined.Key,
+                "Actualizar token",
+                "Sustituirlo sin borrar las notas",
+            ) { onReauthenticate() }
             Spacer(Modifier.padding(bottom = 16.dp))
         }
     }

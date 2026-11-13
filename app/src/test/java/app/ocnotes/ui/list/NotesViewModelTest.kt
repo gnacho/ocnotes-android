@@ -8,6 +8,7 @@ import app.ocnotes.testutil.FakeSessionStore
 import app.ocnotes.testutil.note
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -16,6 +17,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -71,7 +73,7 @@ class NotesViewModelTest {
         try {
             val (vm, dao) = viewModel(FakeNoteDao().apply { notes.add(note(1)) })
 
-            vm.logout()
+            vm.requestLogout()
             advanceUntilIdle()
 
             assertFalse(dao.notes.isNotEmpty())
@@ -129,6 +131,88 @@ class NotesViewModelTest {
             advanceUntilIdle()
 
             assertEquals(2, api.notesCalls.size)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `expired credentials set the session state instead of a sync error`() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val repo = NotesRepository(
+                sessionStore = FakeSessionStore(Session("https://example.com", "alice", "token")),
+                noteDao = FakeNoteDao(),
+                apiFactory = { FakeNotesApi(notesErrorCode = 401) },
+            )
+            val vm = NotesViewModel(repo)
+
+            vm.sync()
+            advanceUntilIdle()
+
+            assertTrue(vm.authExpired.value)
+            assertNull(vm.syncError.value)
+            assertFalse(vm.syncing.value)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `a successful sync clears the expired session state`() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val api = FakeNotesApi(notesErrorCode = 401)
+            val repo = NotesRepository(
+                sessionStore = FakeSessionStore(Session("https://example.com", "alice", "token")),
+                noteDao = FakeNoteDao(),
+                apiFactory = { api },
+            )
+            val vm = NotesViewModel(repo)
+
+            vm.sync()
+            advanceUntilIdle()
+            assertTrue(vm.authExpired.value)
+
+            api.notesErrorCode = null
+            vm.sync()
+            advanceUntilIdle()
+
+            assertFalse(vm.authExpired.value)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `logout with unsynced notes asks before wiping them`() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val store = FakeSessionStore(Session("https://example.com", "alice", "token"))
+            val dao = FakeNoteDao().apply { notes.add(note(1, dirty = true)) }
+            val repo = NotesRepository(
+                sessionStore = store,
+                noteDao = dao,
+                apiFactory = { FakeNotesApi() },
+            )
+            val vm = NotesViewModel(repo)
+
+            vm.requestLogout()
+            advanceUntilIdle()
+
+            assertEquals(1, vm.logoutPendingCount.value ?: 0)
+            assertEquals(1, dao.notes.size)
+            assertNotNull(store.session.first())
+
+            vm.confirmLogout()
+            advanceUntilIdle()
+
+            assertNull(vm.logoutPendingCount.value)
+            assertTrue(dao.notes.isEmpty())
+            assertNull(store.session.first())
         } finally {
             Dispatchers.resetMain()
         }

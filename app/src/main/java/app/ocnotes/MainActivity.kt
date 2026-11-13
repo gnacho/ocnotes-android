@@ -15,6 +15,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -86,6 +87,9 @@ class MainActivity : ComponentActivity() {
             }
             NotesTheme(darkTheme = darkTheme) {
                 val session by repository.session.collectAsStateWithLifecycle(initialValue = null)
+                // Replacing credentials keeps the local database, so it is a
+                // separate screen reachable while a session is active.
+                var updatingCredentials by rememberSaveable { mutableStateOf(false) }
 
                 if (session == null) {
                     val state by loginViewModel.state.collectAsStateWithLifecycle()
@@ -96,15 +100,46 @@ class MainActivity : ComponentActivity() {
                         onTokenChange = loginViewModel::onTokenChange,
                         onLogin = loginViewModel::login,
                     )
+                } else if (updatingCredentials) {
+                    val state by loginViewModel.state.collectAsStateWithLifecycle()
+                    val entryToken = remember { session?.token.orEmpty() }
+                    LaunchedEffect(Unit) {
+                        loginViewModel.startCredentialUpdate(
+                            serverUrl = session?.serverUrl.orEmpty(),
+                            username = session?.username.orEmpty(),
+                        )
+                    }
+                    // The token reaching the session store is the proof that the
+                    // swap worked; then the list comes back and the sync resumes.
+                    LaunchedEffect(session?.token) {
+                        val token = session?.token
+                        if (token != null && token != entryToken) updatingCredentials = false
+                    }
+                    LoginScreen(
+                        state = state,
+                        onServerUrlChange = loginViewModel::onServerUrlChange,
+                        onUsernameChange = loginViewModel::onUsernameChange,
+                        onTokenChange = loginViewModel::onTokenChange,
+                        onLogin = loginViewModel::login,
+                        onCancel = { updatingCredentials = false },
+                    )
                 } else {
-                    AppContent(session = session, initialNoteId = launchNoteId)
+                    AppContent(
+                        session = session,
+                        initialNoteId = launchNoteId,
+                        onReauthenticate = { updatingCredentials = true },
+                    )
                 }
             }
         }
     }
 
     @androidx.compose.runtime.Composable
-    private fun AppContent(session: Session?, initialNoteId: Long = -1L) {
+    private fun AppContent(
+        session: Session?,
+        initialNoteId: Long = -1L,
+        onReauthenticate: () -> Unit = {},
+    ) {
         val settings by settingsViewModel.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
         val categories by notesViewModel.categories.collectAsStateWithLifecycle()
         val counts by notesViewModel.counts.collectAsStateWithLifecycle()
@@ -146,6 +181,7 @@ class MainActivity : ComponentActivity() {
                 target == SCREEN_SETTINGS -> SettingsScreen(
                     viewModel = settingsViewModel,
                     onBack = { screen = SCREEN_LIST },
+                    onReauthenticate = onReauthenticate,
                 )
                     target == SCREEN_NEW -> NoteEditorScreen(
                         viewModel = viewModel(key = "editor-$editorKey") {
@@ -174,6 +210,8 @@ class MainActivity : ComponentActivity() {
                         val scope by notesViewModel.scopeState.collectAsStateWithLifecycle()
                         val syncing by notesViewModel.syncing.collectAsStateWithLifecycle()
                         val syncError by notesViewModel.syncError.collectAsStateWithLifecycle()
+                        val authExpired by notesViewModel.authExpired.collectAsStateWithLifecycle()
+                        val logoutPendingCount by notesViewModel.logoutPendingCount.collectAsStateWithLifecycle()
                         val query by notesViewModel.query.collectAsStateWithLifecycle()
                         val session by repository.session.collectAsStateWithLifecycle(initialValue = null)
                         val userInitial = session?.username?.trim()?.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
@@ -186,6 +224,7 @@ class MainActivity : ComponentActivity() {
                             gridView = settings.gridView,
                             swipeActions = settings.swipeActions,
                             syncError = syncError,
+                            authExpired = authExpired,
                             userInitial = userInitial,
                             query = query,
                             onQueryChange = notesViewModel::setQuery,
@@ -201,7 +240,11 @@ class MainActivity : ComponentActivity() {
                                 screen = SCREEN_NEW
                             },
                             onSync = notesViewModel::sync,
-                            onLogout = notesViewModel::logout,
+                            onLogout = notesViewModel::requestLogout,
+                            onCancelLogout = notesViewModel::cancelLogout,
+                            onConfirmLogout = notesViewModel::confirmLogout,
+                            logoutPendingCount = logoutPendingCount,
+                            onReauthenticate = onReauthenticate,
                             onOpenSettings = { screen = SCREEN_SETTINGS },
                         )
                     }

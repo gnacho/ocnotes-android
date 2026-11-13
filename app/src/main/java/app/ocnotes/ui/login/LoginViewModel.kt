@@ -17,6 +17,9 @@ data class LoginUiState(
     val loading: Boolean = false,
     val error: String? = null,
     val loggedIn: Boolean = false,
+    // True when the screen is only replacing the credentials of the current
+    // session; the local database is preserved.
+    val updatingCredentials: Boolean = false,
 )
 
 class LoginViewModel(private val repository: NotesRepository) : ViewModel() {
@@ -26,6 +29,16 @@ class LoginViewModel(private val repository: NotesRepository) : ViewModel() {
     fun onServerUrlChange(value: String) = _state.update { it.copy(serverUrl = value) }
     fun onUsernameChange(value: String) = _state.update { it.copy(username = value) }
     fun onTokenChange(value: String) = _state.update { it.copy(token = value) }
+
+    // Same account, new credentials: NotesRepository.login() keeps the local
+    // database when server and username do not change.
+    fun startCredentialUpdate(serverUrl: String, username: String) {
+        _state.value = LoginUiState(
+            serverUrl = serverUrl,
+            username = username,
+            updatingCredentials = true,
+        )
+    }
 
     fun login() {
         val s = _state.value
