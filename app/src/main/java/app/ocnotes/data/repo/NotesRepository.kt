@@ -23,6 +23,10 @@ fun deriveTitle(content: String): String {
     return first ?: "New note"
 }
 
+// The stored credentials are expired or revoked. Callers turn this into a
+// "sign in again" state instead of a generic sync error.
+class AuthExpiredException : Exception("Session expired")
+
 // Single concurrency boundary between UI (ViewModels) and data sources.
 class NotesRepository(
     private val sessionStore: SessionStore,
@@ -67,17 +71,30 @@ class NotesRepository(
     suspend fun sync() {
         val session = sessionStore.session.first() ?: return
         val engine = SyncEngine(apiFactory(session), noteDao)
-        engine.pushPending()
-        val hasNotes = noteDao.getHighestModified() != null
-        if (hasNotes) engine.incrementalSync() else engine.initialSync()
+        try {
+            engine.pushPending()
+            val hasNotes = noteDao.getHighestModified() != null
+            if (hasNotes) engine.incrementalSync() else engine.initialSync()
+        } catch (e: HttpException) {
+            throw e.authAware()
+        }
     }
 
     // Pushes queued edits/deletes without pulling. Used after a save so the
     // server receives the change promptly; failures keep the local queue.
     suspend fun pushPending() {
         val session = sessionStore.session.first() ?: return
-        SyncEngine(apiFactory(session), noteDao).pushPending()
+        try {
+            SyncEngine(apiFactory(session), noteDao).pushPending()
+        } catch (e: HttpException) {
+            throw e.authAware()
+        }
     }
+
+    // Notes that exist only on this device (edited or deleted while offline).
+    // A logout wipes the local database, so the UI asks before losing them.
+    suspend fun pendingChangeCount(): Int =
+        noteDao.getPendingUpdates().size + noteDao.getPendingDeletes().size
 
     fun observeNotes(): Flow<List<NoteEntity>> = noteDao.getAll()
     fun observeFavorites(): Flow<List<NoteEntity>> = noteDao.getFavorites()
@@ -129,4 +146,7 @@ class NotesRepository(
     private suspend fun clearLocalData() {
         noteDao.clear()
     }
+
+    private fun HttpException.authAware(): Throwable =
+        if (code() == 401) AuthExpiredException() else this
 }
