@@ -19,6 +19,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.ocnotes.data.session.Session
 import app.ocnotes.data.settings.AppSettings
 import app.ocnotes.data.settings.NoteOpenMode
 import app.ocnotes.data.settings.ThemeMode
@@ -96,14 +97,14 @@ class MainActivity : ComponentActivity() {
                         onLogin = loginViewModel::login,
                     )
                 } else {
-                    AppContent(initialNoteId = launchNoteId)
+                    AppContent(session = session, initialNoteId = launchNoteId)
                 }
             }
         }
     }
 
     @androidx.compose.runtime.Composable
-    private fun AppContent(initialNoteId: Long = -1L) {
+    private fun AppContent(session: Session?, initialNoteId: Long = -1L) {
         val settings by settingsViewModel.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
         val categories by notesViewModel.categories.collectAsStateWithLifecycle()
         val counts by notesViewModel.counts.collectAsStateWithLifecycle()
@@ -111,6 +112,13 @@ class MainActivity : ComponentActivity() {
 
         var screen by rememberSaveable { mutableStateOf(if (initialNoteId > 0) initialNoteId else SCREEN_LIST) }
         var editorKey by rememberSaveable { mutableStateOf(0L) }
+
+        // The ViewModel is scoped to the Activity, so the constructor cannot trigger the
+        // sync: after signing out and in again it would never run, and the list would stay
+        // empty because signing out clears the local database.
+        LaunchedEffect(session) {
+            if (session != null) notesViewModel.sync()
+        }
 
         BackHandler(enabled = screen != SCREEN_LIST) {
             screen = SCREEN_LIST
