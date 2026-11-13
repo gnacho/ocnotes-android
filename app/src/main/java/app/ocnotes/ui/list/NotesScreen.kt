@@ -149,7 +149,13 @@ fun NotesScreen(
                 modifier = Modifier.fillMaxSize().padding(padding),
             ) {
                 when {
-                    entries.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    entries.isEmpty() -> Column(
+                        Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        if (syncError != null) SyncBanner(syncError)
+                        if (authExpired) AuthBanner(onReauthenticate)
                         Text(
                             text = if (query.isBlank()) "Sin notas" else "Sin resultados",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
