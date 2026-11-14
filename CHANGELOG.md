@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.36] - 2026-11-14
+
 ### Added
 
 - The app token can be replaced from Settings when it expires or is revoked, keeping the notes that only exist on the device. The screen is prefilled with the account and only asks for the new token.
@@ -14,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - A 401 during sync or a pending push is now a "session expired" state with a sign-in action, instead of a raw `Sync failed: HTTP 401` banner.
 - Signing out with unsynced edits asks for confirmation and states how many notes will be lost.
+- New launcher icon: the lucide pencil glyph in #E2BAFF, replacing the notepad.
+
+### Fixed
+
+- Signing out and signing in again now syncs. Before, the list stayed empty and no request was made to the server, because the sync only ran when the ViewModel was created.
 
 ## [0.1.34] - 2026-11-10
 
