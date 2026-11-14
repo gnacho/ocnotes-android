@@ -100,6 +100,7 @@ fun NotesScreen(
     gridView: Boolean = false,
     swipeActions: Boolean = true,
     syncError: String? = null,
+    authExpired: Boolean = false,
     userInitial: String = "?",
     query: String,
     onQueryChange: (String) -> Unit,
@@ -110,6 +111,10 @@ fun NotesScreen(
     onNewNote: () -> Unit,
     onSync: () -> Unit,
     onLogout: () -> Unit,
+    onCancelLogout: () -> Unit = {},
+    onConfirmLogout: () -> Unit = {},
+    logoutPendingCount: Int? = null,
+    onReauthenticate: () -> Unit = {},
     onOpenSettings: () -> Unit,
 ) {
     val entries = remember(notes) { buildNoteList(notes) }
@@ -144,7 +149,13 @@ fun NotesScreen(
                 modifier = Modifier.fillMaxSize().padding(padding),
             ) {
                 when {
-                    entries.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    entries.isEmpty() -> Column(
+                        Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        if (syncError != null) SyncBanner(syncError)
+                        if (authExpired) AuthBanner(onReauthenticate)
                         Text(
                             text = if (query.isBlank()) "Sin notas" else "Sin resultados",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -159,6 +170,9 @@ fun NotesScreen(
                     ) {
                         if (syncError != null) {
                             item { SyncBanner(syncError) }
+                        }
+                        if (authExpired) {
+                            item { AuthBanner(onReauthenticate) }
                         }
                         items(entries.filterIsInstance<NoteListEntry.Card>(), key = { it.note.id }) { entry ->
                             GridNoteCard(
@@ -175,6 +189,9 @@ fun NotesScreen(
                     ) {
                         if (syncError != null) {
                             item { SyncBanner(syncError) }
+                        }
+                        if (authExpired) {
+                            item { AuthBanner(onReauthenticate) }
                         }
                         items(entries, key = { keyOf(it) }) { entry ->
                             when (entry) {
@@ -279,6 +296,23 @@ fun NotesScreen(
                 }
             }
         }
+        if (logoutPendingCount != null) {
+            AlertDialog(
+                onDismissRequest = onCancelLogout,
+                title = { Text("Cambios sin sincronizar") },
+                text = {
+                    Text(
+                        if (logoutPendingCount == 1) {
+                            "Hay 1 nota con cambios que no han llegado al servidor. Si cierras sesión se borrará."
+                        } else {
+                            "Hay $logoutPendingCount notas con cambios que no han llegado al servidor. Si cierras sesión se borrarán."
+                        },
+                    )
+                },
+                dismissButton = { TextButton(onClick = onCancelLogout) { Text("Cancelar") } },
+                confirmButton = { TextButton(onClick = onConfirmLogout) { Text("Cerrar sesión") } },
+            )
+        }
     }
 }
 
@@ -295,6 +329,26 @@ private fun SyncBanner(message: String) {
         style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
     )
+}
+
+// Expired credentials look like a sync failure but have a fix, so this banner
+// carries the action instead of a raw HTTP code.
+@Composable
+private fun AuthBanner(onReauthenticate: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "La sesión ha caducado",
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = onReauthenticate) { Text("Iniciar sesión") }
+    }
 }
 
 @Composable

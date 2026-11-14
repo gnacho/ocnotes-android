@@ -4,6 +4,17 @@ All notable changes to ocnotes-android are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- The app token can be replaced from Settings when it expires or is revoked, keeping the notes that only exist on the device. The screen is prefilled with the account and only asks for the new token.
+
+### Changed
+
+- A 401 during sync or a pending push is now a "session expired" state with a sign-in action, instead of a raw `Sync failed: HTTP 401` banner.
+- Signing out with unsynced edits asks for confirmation and states how many notes will be lost.
+
 ## [0.1.34] - 2026-11-10
 
 ### Changed

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import app.ocnotes.data.local.NoteEntity
+import app.ocnotes.data.repo.AuthExpiredException
 import app.ocnotes.data.repo.NotesRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -46,11 +47,17 @@ class NotesViewModel(private val repository: NotesRepository) : ViewModel() {
     private val _query = MutableStateFlow("")
     private val _syncing = MutableStateFlow(false)
     private val _syncError = MutableStateFlow<String?>(null)
+    private val _authExpired = MutableStateFlow(false)
+    private val _logoutPending = MutableStateFlow<Int?>(null)
 
     val scopeState: StateFlow<NotesScope> = scope
     val query: StateFlow<String> = _query
     val syncing: StateFlow<Boolean> = _syncing
     val syncError: StateFlow<String?> = _syncError
+    val authExpired: StateFlow<Boolean> = _authExpired
+
+    // Number of unsynced notes when a logout needs confirmation, null otherwise.
+    val logoutPendingCount: StateFlow<Int?> = _logoutPending
 
     private val allNotes: StateFlow<List<NoteEntity>> = repository.observeNotes()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -97,8 +104,13 @@ class NotesViewModel(private val repository: NotesRepository) : ViewModel() {
             try {
                 repository.sync()
                 _syncError.value = null
+                _authExpired.value = false
             } catch (e: CancellationException) {
                 throw e
+            } catch (e: AuthExpiredException) {
+                // Expired credentials are a state of the session, not a sync error.
+                _syncError.value = null
+                _authExpired.value = true
             } catch (e: Exception) {
                 _syncError.value = e.message ?: "Sync failed"
             } finally {
@@ -107,8 +119,21 @@ class NotesViewModel(private val repository: NotesRepository) : ViewModel() {
         }
     }
 
-    fun logout() {
+    // A logout wipes the local database, so unsynced notes need a confirmation first.
+    fun requestLogout() {
+        viewModelScope.launch {
+            val pending = repository.pendingChangeCount()
+            if (pending > 0) _logoutPending.value = pending else repository.logout()
+        }
+    }
+
+    fun confirmLogout() {
+        _logoutPending.value = null
         viewModelScope.launch { repository.logout() }
+    }
+
+    fun cancelLogout() {
+        _logoutPending.value = null
     }
 
     companion object {

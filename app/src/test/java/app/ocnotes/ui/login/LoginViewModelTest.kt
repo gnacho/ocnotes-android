@@ -11,6 +11,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -61,5 +62,18 @@ class LoginViewModelTest {
         } finally {
             Dispatchers.resetMain()
         }
+    }
+
+    @Test
+    fun `credential update prefills the account and clears the token`() {
+        val vm = LoginViewModel(repo())
+
+        vm.startCredentialUpdate("https://example.com", "alice")
+
+        val state = vm.state.value
+        assertTrue(state.updatingCredentials)
+        assertEquals("https://example.com", state.serverUrl)
+        assertEquals("alice", state.username)
+        assertEquals("", state.token)
     }
 }

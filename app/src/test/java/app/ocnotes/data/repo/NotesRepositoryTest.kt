@@ -10,7 +10,9 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
+import retrofit2.HttpException
 
 class NotesRepositoryTest {
 
@@ -114,5 +116,45 @@ class NotesRepositoryTest {
 
         repo.deleteNote(1)
         assertTrue(dao.notes.first { it.id == 1L }.deleted)
+    }
+
+    @Test
+    fun `sync turns a 401 into an expired session`() = runTest {
+        val sessionStore = FakeSessionStore()
+        sessionStore.save(app.ocnotes.data.session.Session("https://example.com", "alice", "token"))
+        val repo = repo(sessionStore, FakeNoteDao(), FakeNotesApi(notesErrorCode = 401))
+
+        try {
+            repo.sync()
+            fail("expected AuthExpiredException")
+        } catch (e: AuthExpiredException) {
+            assertEquals("Session expired", e.message)
+        }
+    }
+
+    @Test
+    fun `sync keeps other HTTP errors untouched`() = runTest {
+        val sessionStore = FakeSessionStore()
+        sessionStore.save(app.ocnotes.data.session.Session("https://example.com", "alice", "token"))
+        val repo = repo(sessionStore, FakeNoteDao(), FakeNotesApi(notesErrorCode = 500))
+
+        try {
+            repo.sync()
+            fail("expected HttpException")
+        } catch (e: HttpException) {
+            assertEquals(500, e.code())
+        }
+    }
+
+    @Test
+    fun `pendingChangeCount counts queued edits and deletes only`() = runTest {
+        val dao = FakeNoteDao().apply {
+            notes.add(note(1, dirty = true))
+            notes.add(note(2, deleted = true))
+            notes.add(note(3))
+        }
+        val repo = repo(FakeSessionStore(), dao, FakeNotesApi())
+
+        assertEquals(2, repo.pendingChangeCount())
     }
 }

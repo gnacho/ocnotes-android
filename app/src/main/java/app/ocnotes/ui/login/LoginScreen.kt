@@ -11,6 +11,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -23,20 +24,34 @@ fun LoginScreen(
     onUsernameChange: (String) -> Unit,
     onTokenChange: (String) -> Unit,
     onLogin: () -> Unit,
+    onCancel: (() -> Unit)? = null,
 ) {
+    val updating = state.updatingCredentials
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(text = "ocnotes", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            text = if (updating) "Update app token" else "ocnotes",
+            style = MaterialTheme.typography.headlineMedium,
+        )
+        if (updating) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Your notes stay on this device. Only the credentials change.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Spacer(Modifier.height(24.dp))
         OutlinedTextField(
             value = state.serverUrl,
             onValueChange = onServerUrlChange,
             label = { Text("Server URL") },
             singleLine = true,
+            enabled = !updating,
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(8.dp))
@@ -45,6 +60,7 @@ fun LoginScreen(
             onValueChange = onUsernameChange,
             label = { Text("Username") },
             singleLine = true,
+            enabled = !updating,
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(8.dp))
@@ -66,7 +82,19 @@ fun LoginScreen(
             enabled = !state.loading,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (state.loading) "Signing in…" else "Sign in")
+            Text(
+                when {
+                    state.loading && updating -> "Updating…"
+                    state.loading -> "Signing in…"
+                    updating -> "Update token"
+                    else -> "Sign in"
+                },
+            )
+        }
+        if (onCancel != null) {
+            TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
+                Text("Cancel")
+            }
         }
     }
 }
