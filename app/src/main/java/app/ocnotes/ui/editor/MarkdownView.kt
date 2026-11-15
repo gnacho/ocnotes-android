@@ -40,17 +40,25 @@ fun MarkdownContentView(
             val src = IMG_SRC.find(line)?.groupValues?.get(1)
             if (src != null) {
                 val href = HREF_SRC.find(line)?.groupValues?.get(1) ?: pendingHref
-                AsyncImage(
-                    model = src,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .padding(vertical = 6.dp)
-                        .width(240.dp)
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .then(if (href != null) Modifier.clickable { onOpenLink(href) } else Modifier),
-                )
+                val videoId = youTubeId(src) ?: href?.let { youTubeId(it) }
+                if (videoId != null) {
+                    YouTubeCard(
+                        id = videoId,
+                        onOpenExternal = { onOpenLink(href ?: youTubeThumbnailUrl(videoId)) },
+                    )
+                } else {
+                    AsyncImage(
+                        model = src,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .padding(vertical = 6.dp)
+                            .width(240.dp)
+                            .height(180.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .then(if (href != null) Modifier.clickable { onOpenLink(href) } else Modifier),
+                    )
+                }
                 pendingHref = null
             } else {
                 HREF_SRC.find(line)?.groupValues?.get(1)?.let { pendingHref = it }
